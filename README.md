@@ -17,7 +17,7 @@ It provides a user-friendly interface to configure patch versions, monitor clien
 - Live uptime indicator and connection logs
 - Colored log console for visual clarity
 - Real-time log writing to daily files (`log/log-YYYY-MM-DD.txt`)
-- 
+
 ---
 
 ## ⚙️ Configuration File
