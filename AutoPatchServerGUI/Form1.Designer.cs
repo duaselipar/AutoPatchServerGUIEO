@@ -46,6 +46,7 @@
             tabControl1 = new TabControl();
             tabPage1 = new TabPage();
             tabPage2 = new TabPage();
+            richTextBox1 = new RichTextBox();
             consoleBox = new RichTextBox();
             fbLink = new LinkLabel();
             groupBox1.SuspendLayout();
@@ -54,6 +55,7 @@
             ((System.ComponentModel.ISupportInitialize)verNumeric).BeginInit();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
+            tabPage2.SuspendLayout();
             SuspendLayout();
             // 
             // hostBox
@@ -217,6 +219,7 @@
             // 
             // tabPage2
             // 
+            tabPage2.Controls.Add(richTextBox1);
             tabPage2.Location = new Point(4, 24);
             tabPage2.Name = "tabPage2";
             tabPage2.Padding = new Padding(3);
@@ -225,10 +228,21 @@
             tabPage2.Text = "About";
             tabPage2.UseVisualStyleBackColor = true;
             // 
+            // richTextBox1
+            // 
+            richTextBox1.Location = new Point(3, 0);
+            richTextBox1.Name = "richTextBox1";
+            richTextBox1.ReadOnly = true;
+            richTextBox1.Size = new Size(715, 130);
+            richTextBox1.TabIndex = 0;
+            richTextBox1.Text = resources.GetString("richTextBox1.Text");
+            richTextBox1.TextChanged += richTextBox1_TextChanged;
+            // 
             // consoleBox
             // 
             consoleBox.Location = new Point(7, 154);
             consoleBox.Name = "consoleBox";
+            consoleBox.ReadOnly = true;
             consoleBox.Size = new Size(712, 346);
             consoleBox.TabIndex = 14;
             consoleBox.Text = "";
@@ -266,6 +280,7 @@
             ((System.ComponentModel.ISupportInitialize)verNumeric).EndInit();
             tabControl1.ResumeLayout(false);
             tabPage1.ResumeLayout(false);
+            tabPage2.ResumeLayout(false);
             ResumeLayout(false);
             PerformLayout();
         }
@@ -290,5 +305,6 @@
         private NumericUpDown autoNumeric;
         private NumericUpDown verNumeric;
         private LinkLabel fbLink;
+        private RichTextBox richTextBox1;
     }
 }

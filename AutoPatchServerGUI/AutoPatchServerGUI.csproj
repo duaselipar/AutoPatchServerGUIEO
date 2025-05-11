@@ -10,6 +10,7 @@
 		<SelfContained>false</SelfContained> <!-- Optional: Include the .NET runtime -->
 		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
 		<ApplicationIcon>server.ico</ApplicationIcon>
+		<AssemblyName>Auto Patch Server</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
