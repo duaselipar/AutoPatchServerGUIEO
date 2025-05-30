@@ -51,13 +51,21 @@ namespace AutoPatchServerGUI
             if (uptimeTimer.IsRunning)
             {
                 TimeSpan uptime = uptimeTimer.Elapsed;
-                label6.Text = $"Online Server: {uptime:hh\\:mm\\:ss}";
+                int days = uptime.Days;
+                int hours = uptime.Hours;
+                int minutes = uptime.Minutes;
+                int seconds = uptime.Seconds;
+                if (days > 0)
+                    label6.Text = $"Online Server: {days}d {hours:D2}:{minutes:D2}:{seconds:D2}";
+                else
+                    label6.Text = $"Online Server: {hours:D2}:{minutes:D2}:{seconds:D2}";
             }
             else
             {
                 label6.Text = "Online Server: -";
             }
         }
+
 
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -162,6 +170,8 @@ namespace AutoPatchServerGUI
                         startBtn.Text = "Stop";
                         statusLabel.Text = "🟢 Server Online";
                         statusLabel.ForeColor = Color.Green;
+                        SetControlsEnabled(false);  // disable semua kecuali butang yg patut
+                        SetControlsEnabled(true);   // enable yang patut masa server running (btnCrtIni akan aktif)
                     });
 
                     Log($"[INFO] Autopatch Server started on port {port}", Color.Green);
@@ -196,11 +206,15 @@ namespace AutoPatchServerGUI
 
                             string clientVersion = Encoding.ASCII.GetString(buffer, 0, read).Trim('\0', '\n', '\r', ' ');
 
+                            clientVersion = clientVersion.Replace("\r", " ").Replace("\n", " ");
+
+
                             if (!IsValidVersion(clientVersion))
                             {
                                 Log($"[DROP] {remoteEP?.Address}:{remoteEP?.Port} invalid version: \"{clientVersion}\"", Color.Red);
                                 continue;
                             }
+
 
                             Log($"[CLIENT] {remoteEP?.Address}:{remoteEP?.Port} version: {clientVersion}", Color.Teal);
 
@@ -281,11 +295,17 @@ namespace AutoPatchServerGUI
 
         private void Log(string message, Color color)
         {
-            string timestamped = $"[{DateTime.Now:HH:mm:ss}] {message}";
+            // Replace newline (\n), carriage return (\r), and tabs (\t) with space
+            string cleanMessage = message.Replace("\r", " ").Replace("\n", " ").Replace("\t", " ");
+
+            // If you want to remove other non-printable characters, use regex:
+            // cleanMessage = System.Text.RegularExpressions.Regex.Replace(cleanMessage, @"[^\u0020-\u007E]", " ");
+
+            string timestamped = $"[{DateTime.Now:HH:mm:ss}] {cleanMessage}";
 
             if (consoleBox.InvokeRequired)
             {
-                consoleBox.Invoke(new Action(() => Log(message, color)));
+                consoleBox.Invoke(new Action(() => Log(cleanMessage, color)));
                 return;
             }
 
@@ -297,6 +317,7 @@ namespace AutoPatchServerGUI
 
             WriteLogFile(timestamped);
         }
+
 
         private void WriteLogFile(string line)
         {
@@ -328,6 +349,8 @@ namespace AutoPatchServerGUI
             webNumeric.Enabled = enabled;
             pathBox.Enabled = enabled;
             autosBox.Enabled = enabled;
+            // Hanya enable masa server running
+            btnCrtIni.Enabled = serverRunning;
         }
 
         private void SaveConfig()
@@ -385,5 +408,60 @@ namespace AutoPatchServerGUI
         {
 
         }
+
+        private void btnCrtIni_Click(object sender, EventArgs e)
+        {
+            if (!serverRunning)
+            {
+                MessageBox.Show("Server must be running before creating socketconfig.ini!", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string hostname = hostBox.Text.Trim();
+            string ip = ResolveHostIP(hostname);
+            string port = autoNumeric.Value.ToString();
+            string serverName = "Marang"; // Tukar ikut keperluan
+
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("[Server]");
+            sb.AppendLine(";Generated using duaselipar autopatch server");
+            sb.AppendLine("count=1");
+            sb.AppendLine($"Server1={serverName} {ip} {port} {ip} {port}");
+            sb.AppendLine(); // Biarkan 1 blank line, ikut standard kebiasaan .ini EO
+            sb.AppendLine("[time]");
+            sb.AppendLine("QLinkTimeOut=10000");
+            sb.AppendLine("QSendTimeOut=10000");
+            sb.AppendLine("QReceiveTimeOut=10000");
+            sb.AppendLine("DLinkTimeOut=10000");
+            sb.AppendLine("DSendTimeOut=10000");
+            sb.AppendLine("DReceiveTimeOut=10000");
+
+            // Lokasi file
+            string iniPath = Path.Combine(Application.StartupPath, "socketconfig.ini");
+
+            try
+            {
+                File.WriteAllText(iniPath, sb.ToString(), Encoding.Default); // ANSI
+                MessageBox.Show(
+                    "socketconfig.ini generated successfully!\n\nPlease copy this file into your autopatch client folder before starting the client.",
+                    "Success",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information
+                );
+                Log("[INFO] socketconfig.ini created.", Color.Green);
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Failed to write socketconfig.ini:\n" + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Log($"[ERROR] Failed to write socketconfig.ini: {ex.Message}", Color.Red);
+            }
+        }
+
+
+
+
+
+
     }
 }

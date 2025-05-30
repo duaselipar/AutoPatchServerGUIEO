@@ -39,6 +39,7 @@
             startBtn = new Button();
             autosBox = new CheckBox();
             groupBox1 = new GroupBox();
+            btnCrtIni = new Button();
             webNumeric = new NumericUpDown();
             autoNumeric = new NumericUpDown();
             verNumeric = new NumericUpDown();
@@ -62,7 +63,7 @@
             // 
             hostBox.Location = new Point(109, 80);
             hostBox.Name = "hostBox";
-            hostBox.Size = new Size(381, 23);
+            hostBox.Size = new Size(235, 23);
             hostBox.TabIndex = 2;
             // 
             // label1
@@ -140,6 +141,7 @@
             // 
             // groupBox1
             // 
+            groupBox1.Controls.Add(btnCrtIni);
             groupBox1.Controls.Add(webNumeric);
             groupBox1.Controls.Add(autoNumeric);
             groupBox1.Controls.Add(verNumeric);
@@ -159,6 +161,17 @@
             groupBox1.TabIndex = 12;
             groupBox1.TabStop = false;
             groupBox1.Text = "Settings";
+            // 
+            // btnCrtIni
+            // 
+            btnCrtIni.Location = new Point(350, 80);
+            btnCrtIni.Name = "btnCrtIni";
+            btnCrtIni.Size = new Size(140, 26);
+            btnCrtIni.TabIndex = 16;
+            btnCrtIni.Text = "Create SocketConfig.ini";
+            btnCrtIni.UseVisualStyleBackColor = true;
+            this.btnCrtIni.Click += new System.EventHandler(this.btnCrtIni_Click);
+
             // 
             // webNumeric
             // 
@@ -306,5 +319,6 @@
         private NumericUpDown verNumeric;
         private LinkLabel fbLink;
         private RichTextBox richTextBox1;
+        private Button btnCrtIni;
     }
 }

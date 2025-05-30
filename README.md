@@ -48,7 +48,3 @@ autorun=false
 [20:12:01] [INFO] Client will patch from http://yourserver.com:80/patches/1000.exe
 ```
 ---
-
-## 🛡️ License
-
-MIT — free to use and modify for your server projects.
