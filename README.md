@@ -48,3 +48,15 @@ autorun=false
 [20:12:01] [INFO] Client will patch from http://yourserver.com:80/patches/1000.exe
 ```
 ---
+
+
+## 🆕 What’s New
+
+- **Client socketconfig.ini generation:**  
+  Easily export a ready-to-use configuration file for your autopatch client, using the server’s current IP and port. Just copy it into the client folder!
+- **Improved uptime:**  
+  Uptime now shows days/hours/minutes/seconds for accurate monitoring.
+- **Better logging:**  
+  All logs are sanitized for clear, single-line output and compatibility.
+
+---
