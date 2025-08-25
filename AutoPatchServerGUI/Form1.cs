@@ -136,13 +136,10 @@ namespace AutoPatchServerGUI
         }
 
 
+        // === 1) GANTI PENUH startBtn_Click ===
         private void startBtn_Click(object sender, EventArgs e)
         {
-            if (serverRunning)
-            {
-                StopServer();
-                return;
-            }
+            if (serverRunning) { StopServer(); return; }
 
             SetControlsEnabled(false);
             SaveConfig();
@@ -158,90 +155,123 @@ namespace AutoPatchServerGUI
 
             listenerThread = new Thread(() =>
             {
-                try
+                while (!token.IsCancellationRequested) // auto-restart loop
                 {
-                    listener = new TcpListener(IPAddress.Any, port);
-                    listener.Start();
-                    serverRunning = true;
-                    uptimeTimer.Restart();
-
-                    Invoke(() =>
-                    {
-                        startBtn.Text = "Stop";
-                        statusLabel.Text = "🟢 Server Online";
-                        statusLabel.ForeColor = Color.Green;
-                        SetControlsEnabled(false);  // disable semua kecuali butang yg patut
-                        SetControlsEnabled(true);   // enable yang patut masa server running (btnCrtIni akan aktif)
-                    });
-
-                    Log($"[INFO] Autopatch Server started on port {port}", Color.Green);
-                    string resolvedIP = ResolveHostIP(hostname);
-                    string hostDisplay = (hostname == resolvedIP) ? resolvedIP : $"{hostname} | {resolvedIP}";
-                    Log($"[INFO] Server IP/Host : {hostDisplay}", Color.Green);
-                    Log($"[INFO] Latest Version : {latestVersion}", Color.Green);
-                    Log($"[INFO] Patch folder : {path}", Color.Green);
-                    Log($"[INFO] Client will patch from http://{hostname}:{webPort}/{path}/{latestVersion}.exe", Color.Green);
-
                     try
                     {
+                        // (re)start listener
+                        listener = new TcpListener(IPAddress.Any, port);
+                        listener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                        listener.Start();
+
+                        serverRunning = true;
+                        uptimeTimer.Restart();
+
+                        Invoke(() =>
+                        {
+                            startBtn.Text = "Stop";
+                            statusLabel.Text = "🟢 Server Online";
+                            statusLabel.ForeColor = Color.Green;
+                        });
+
+                        Log($"[INFO] Autopatch Server started on port {port}", Color.Green);
+                        string resolvedIP = ResolveHostIP(hostname);
+                        string hostDisplay = (hostname == resolvedIP) ? resolvedIP : $"{hostname} | {resolvedIP}";
+                        Log($"[INFO] Server IP/Host : {hostDisplay}", Color.Green);
+                        Log($"[INFO] Latest Version : {latestVersion}", Color.Green);
+                        Log($"[INFO] Patch folder : {path}", Color.Green);
+                        Log($"[INFO] Client will patch from http://{hostname}:{webPort}/{path}/{latestVersion}.exe", Color.Green);
+
+                        // ===== main accept loop =====
                         while (!token.IsCancellationRequested)
                         {
-                            if (listener == null || listener.Server == null || !listener.Server.IsBound)
-                                break;
-
                             if (!listener.Pending())
                             {
                                 Thread.Sleep(100);
                                 continue;
                             }
 
-                            TcpClient client = listener.AcceptTcpClient();
-                            using NetworkStream stream = client.GetStream();
-
-                            IPEndPoint remoteEP = client.Client.RemoteEndPoint as IPEndPoint;
-
-                            byte[] buffer = new byte[1024];
-                            int read = stream.Read(buffer, 0, buffer.Length);
-                            if (read <= 0) continue;
-
-                            string clientVersion = Encoding.ASCII.GetString(buffer, 0, read).Trim('\0', '\n', '\r', ' ');
-
-                            clientVersion = clientVersion.Replace("\r", " ").Replace("\n", " ");
-
-
-                            if (!IsValidVersion(clientVersion))
+                            // Handle setiap client dalam try/catch supaya error tak bunuh server
+                            TcpClient client = null;
+                            try
                             {
-                                Log($"[DROP] {remoteEP?.Address}:{remoteEP?.Port} invalid version: \"{clientVersion}\"", Color.Red);
-                                continue;
+                                client = listener.AcceptTcpClient();
+                                client.ReceiveTimeout = 5000;
+                                client.SendTimeout = 5000;
+
+                                using NetworkStream stream = client.GetStream();
+                                IPEndPoint remote = client.Client.RemoteEndPoint as IPEndPoint;
+
+                                byte[] buf = new byte[1024];
+                                int read = stream.Read(buf, 0, buf.Length); // boleh throw
+                                if (read <= 0) continue;
+
+                                string raw = Encoding.ASCII.GetString(buf, 0, read);
+                                string clientVersion = raw.Replace("\r", " ").Replace("\n", " ").Trim('\0', ' ');
+
+                                if (!IsValidVersion(clientVersion))
+                                {
+                                    Log($"[DROP] {remote?.Address}:{remote?.Port} invalid version: \"{clientVersion}\"", Color.Red);
+                                    // jangan crash—terus layan client lain
+                                    continue;
+                                }
+
+                                Log($"[CLIENT] {remote?.Address}:{remote?.Port} version: {clientVersion}", Color.Teal);
+
+                                int clientVer = int.Parse(clientVersion);
+                                int serverVer = int.Parse(latestVersion);
+                                int nextPatch = clientVer + 1;
+
+                                if (nextPatch > serverVer)
+                                {
+                                    SafeSend(stream, "READY");
+                                }
+                                else
+                                {
+                                    string updateHost = (webPort == "80") ? hostname : $"{hostname}:{webPort}";
+                                    string updateMsg = $"UPDATE {updateHost} {path}/{nextPatch}.exe";
+                                    SafeSend(stream, updateMsg);
+                                }
                             }
-
-
-                            Log($"[CLIENT] {remoteEP?.Address}:{remoteEP?.Port} version: {clientVersion}", Color.Teal);
-
-                            int clientVer = int.Parse(clientVersion);
-                            int serverVer = int.Parse(latestVersion);
-                            int nextPatch = clientVer + 1;
-
-                            if (nextPatch > serverVer)
+                            catch (IOException ex)
                             {
-                                SendMessage(stream, "READY");
+                                Log($"[WARN] Client IO error: {ex.Message}", Color.Orange);
                             }
-                            else
+                            catch (SocketException ex)
                             {
-                                string updateHost = (webPort == "80") ? hostname : $"{hostname}:{webPort}";
-                                string updateMsg = $"UPDATE {updateHost} {path}/{nextPatch}.exe";
-                                SendMessage(stream, updateMsg);
+                                Log($"[WARN] Client socket error: {ex.Message}", Color.Orange);
+                            }
+                            catch (Exception ex)
+                            {
+                                Log($"[WARN] Client handler error: {ex.Message}", Color.Orange);
+                            }
+                            finally
+                            {
+                                try { client?.Close(); } catch { }
                             }
                         }
                     }
                     catch (ObjectDisposedException)
                     {
-                        // Safe exit
+                        // stop dipanggil — keluar loop luar
+                        break;
                     }
-                }
-                catch (Exception ex)
-                {
-                    Log($"[ERROR] {ex.Message}", Color.Red);
+                    catch (Exception ex)
+                    {
+                        Log($"[ERROR] Listener error: {ex.Message}", Color.Red);
+                    }
+                    finally
+                    {
+                        try { listener?.Stop(); } catch { }
+                        serverRunning = false;
+                    }
+
+                    if (!token.IsCancellationRequested)
+                    {
+                        Log("[INFO] Restarting server in 3s ...", Color.Orange);
+                        for (int i = 0; i < 30 && !token.IsCancellationRequested; i++) Thread.Sleep(100);
+                        // loop while akan cuba start semula
+                    }
                 }
             });
 
@@ -249,13 +279,18 @@ namespace AutoPatchServerGUI
             listenerThread.Start();
         }
 
+        // === 3) KEMASKINI StopServer (kemas & tak tinggal resource) ===
         private void StopServer()
         {
             try
             {
-                serverRunning = false;
-                listener?.Stop();
                 cancelSource?.Cancel();
+                serverRunning = false;
+                try { listener?.Stop(); } catch { }
+
+                if (listenerThread != null && listenerThread.IsAlive)
+                    listenerThread.Join(1000);
+
                 uptimeTimer.Stop();
 
                 Invoke(() =>
@@ -459,6 +494,19 @@ namespace AutoPatchServerGUI
         }
 
 
+        // === 2) GANTI SendMessage -> jadi SafeSend (tak crash bila client tutup tiba2) ===
+        private void SafeSend(NetworkStream stream, string msg)
+        {
+            try
+            {
+                byte[] data = Encoding.ASCII.GetBytes(msg + "\0");
+                stream.Write(data, 0, data.Length);
+            }
+            catch (Exception ex)
+            {
+                Log($"[WARN] Send failed: {ex.Message}", Color.Orange);
+            }
+        }
 
 
 
