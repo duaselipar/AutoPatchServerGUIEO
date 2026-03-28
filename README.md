@@ -17,12 +17,12 @@ It provides a user-friendly interface to configure patch versions, monitor clien
 - Live uptime indicator and connection logs
 - Colored log console for visual clarity
 - Real-time log writing to daily files (`log/log-YYYY-MM-DD.txt`)
-
+- Dark Mode UI
 ---
 
 ## ⚙️ Configuration File
 
-The app reads from and saves to a `ServerConfig.ini` file in the following format:
+The app reads from and saves to a `autopatchconfig.ini` file in the following format:
 
 ```ini
 [config]
@@ -32,6 +32,7 @@ web_hostname=yourserver.com
 web_port=80
 web_path=patches
 autorun=false
+dark_mode=false
 ```
 
 ✅ The GUI will automatically fill in fields based on this config and save any changes when the server is started.
@@ -52,7 +53,7 @@ autorun=false
 
 ## 🆕 What’s New
 
-- **Client socketconfig.ini generation:**  
+- **Client autopatchconfig.ini generation:**  
   Easily export a ready-to-use configuration file for your autopatch client, using the server’s current IP and port. Just copy it into the client folder!
 - **Improved uptime:**  
   Uptime now shows days/hours/minutes/seconds for accurate monitoring.
