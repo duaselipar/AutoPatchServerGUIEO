@@ -9,12 +9,12 @@
 		<PublishSingleFile>true</PublishSingleFile>
 		<SelfContained>false</SelfContained> <!-- Optional: Include the .NET runtime -->
 		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
-		<ApplicationIcon>server.ico</ApplicationIcon>
+		<ApplicationIcon>maint.ico</ApplicationIcon>
 		<AssemblyName>AutoPatchServer</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="server.ico" />
+    <Content Include="maint.ico" />
   </ItemGroup>
 
 </Project>
